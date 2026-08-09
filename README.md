@@ -8,7 +8,7 @@ Here is an example of the model reconstructing a heavily corrupted image:
 
 | Corrupted Input | Reconstructed Output | Perfect Target |
 |:---:|:---:|:---:|
-| <img src="results/1_corrupted_input.png" width="250"/> | <img src="results/2_reconstructed_output.png" width="250"/> | <img src="results/3_perfect_target.png" width="250"/> |
+| <img src="assets/corrupted_input.png" width="250"/> | <img src="assets/denoised_output.png" width="250"/> | <img src="assets/perfect_target.png" width="250"/> |
 
 ## Features
 - **Custom CUDA Extension**: Features a specialized C++/CUDA backend (`aggregation.cu`, `binding.cpp`) for fused image aggregation that bypasses slow PyTorch loop implementations.

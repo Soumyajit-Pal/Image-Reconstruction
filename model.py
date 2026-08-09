@@ -16,8 +16,8 @@ except ImportError:
     agg_module = load(
         name="agg_module",
         sources=[
-            os.path.join(os.path.dirname(__file__), "binding.cpp"),
-            os.path.join(os.path.dirname(__file__), "aggregation.cu"),
+            os.path.join(os.path.dirname(__file__), "csrc", "binding.cpp"),
+            os.path.join(os.path.dirname(__file__), "csrc", "aggregation.cu"),
         ],
         extra_cflags=["/Zc:preprocessor"],
         extra_cuda_cflags=["-Xcompiler", "/Zc:preprocessor"],
@@ -218,10 +218,10 @@ def evaluate_model(model):
     with torch.no_grad():
         denoised_img = model(noisy_img)
 
-    os.makedirs("results", exist_ok=True)
-    save_image(noisy_img, "results/1_corrupted_input.png")
-    save_image(denoised_img, "results/2_reconstructed_output.png")
-    save_image(clean_img, "results/3_perfect_target.png")
+    os.makedirs("assets", exist_ok=True)
+    save_image(noisy_img, "assets/corrupted_input.png")
+    save_image(denoised_img, "assets/denoised_output.png")
+    save_image(clean_img, "assets/perfect_target.png")
 
     clean_np = clean_img[0].cpu().numpy().transpose(1, 2, 0)
     denoised_np = denoised_img[0].cpu().numpy().transpose(1, 2, 0)

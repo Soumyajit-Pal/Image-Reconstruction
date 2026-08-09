@@ -6,7 +6,7 @@ setup(
     ext_modules=[
         CUDAExtension(
             name="agg_module",
-            sources=["binding.cpp", "aggregation.cu"],
+            sources=["csrc/binding.cpp", "csrc/aggregation.cu"],
             extra_compile_args={
                 "cxx": ["/Zc:preprocessor"],
                 "nvcc": ["-Xcompiler", "/Zc:preprocessor"],
