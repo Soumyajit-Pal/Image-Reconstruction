@@ -1,0 +1,10 @@
+__pycache__/
+*.pyd
+build/
+*.egg-info/
+.ipynb_checkpoints/
+evaluate_only.py
+
+# Ignore large weights but keep the main demo weight
+*.pth
+!weights/denoiser_unified.pth
