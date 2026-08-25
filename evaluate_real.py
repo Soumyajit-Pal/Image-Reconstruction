@@ -31,12 +31,12 @@ def main():
     model.to(device)
     model.eval()
 
-    # Find the generated images
-    brain_dir = r"C:\Users\palbi\.gemini\antigravity-ide\brain\c7307f35-3fd1-45d9-9cc2-ff0a0594e780"
+    # Use local test images
+    test_dir = "test_images"
     paths = [
-        glob.glob(os.path.join(brain_dir, "clean_aeroplane_*.png"))[0],
-        glob.glob(os.path.join(brain_dir, "clean_tree_*.png"))[0],
-        glob.glob(os.path.join(brain_dir, "clean_building_*.png"))[0]
+        os.path.join(test_dir, "clean_aeroplane.png"),
+        os.path.join(test_dir, "clean_tree.png"),
+        os.path.join(test_dir, "clean_building.png")
     ]
 
     clean_tensors = []

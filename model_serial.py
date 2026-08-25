@@ -29,8 +29,13 @@ class NonexpansiveDenoiserSerial(nn.Module):
             wp_layers.append(nn.LeakyReLU(negative_slope=0.2, inplace=True))
         wp_layers.append(nn.Conv2d(hidden_channels, 1, kernel_size=1))
         
+        class WeightNet(nn.Module):
+            def __init__(self, layers):
+                super().__init__()
+                self.net = nn.Sequential(*layers)
+        
         # Using the same sub-module naming as model.py's ParallelWeightPredictor
-        self.weight_net = type('WeightNet', (), {'net': nn.Sequential(*wp_layers)})()
+        self.weight_net = WeightNet(wp_layers)
 
     def forward(self, noisy_x):
         # A basic dummy/pure-pytorch pass for the benchmark to work

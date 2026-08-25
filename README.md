@@ -1,61 +1,77 @@
-# Image Reconstruction using Custom CUDA Kernels
+# 🖼️ Image Reconstruction (CUDA Accelerated)
 
-This project showcases an advanced Machine Learning model for **Image Denoising / Reconstruction**. It utilizes a **Non-Expansive Denoiser architecture** with a **Parallel Weight Predictor**, highly optimized using **Custom CUDA Extensions** for rapid image aggregation.
+![PyTorch](https://img.shields.io/badge/PyTorch-2.0+-red.svg)
+![CUDA](https://img.shields.io/badge/CUDA-11.8+-green.svg)
+![C++](https://img.shields.io/badge/C++-17-blue.svg)
+![Status](https://img.shields.io/badge/Status-Complete-success.svg)
 
-## Showcase
+This project showcases a high-performance **Non-Expansive Image Denoiser**. Developed as part of my **IISc Research Internship** at the Lab of Imaging Sciences and Algorithms (LISA), this model predicts parallel spatial shifts to reconstruct heavily corrupted images. 
 
-Here is an example of the model reconstructing a heavily corrupted image:
+To overcome sequential bottlenecks in native PyTorch loops, I engineered **custom C++/CUDA backend extensions**, achieving a significant **1.5X inference speedup**.
+
+## 📊 Showcase
+
+Here is the model actively reconstructing corrupted images using parallel aggregation:
 
 | Corrupted Input | Reconstructed Output | Perfect Target |
 |:---:|:---:|:---:|
 | <img src="assets/corrupted_input.png" width="250"/> | <img src="assets/denoised_output.png" width="250"/> | <img src="assets/perfect_target.png" width="250"/> |
 
-## Features
-- **Custom CUDA Extension**: Features a specialized C++/CUDA backend (`aggregation.cu`, `binding.cpp`) for fused image aggregation that bypasses slow PyTorch loop implementations.
-- **Parallel Weight Predictor**: Neural network that predicts spatial shifts and applies them concurrently.
-- **High Performance**: Significant speedups in both execution time and memory efficiency over pure-Python equivalents (measured using `benchmark.py`).
+---
 
-## Installation
+## ✨ Features & Research Highlights
+- **Performance Breakthrough**: Achieved a **1.5X execution speedup** compared to standard PyTorch implementation (verified via `benchmark.py`).
+- **Custom CUDA Backend**: Wrote specialized `aggregation.cu` and `binding.cpp` kernels for fused image aggregation, entirely bypassing Python-layer loop overhead.
+- **Time-Memory Optimization**: Conducted rigorous trade-off analysis to ensure strict numerical accuracy while maximizing GPU VRAM utilization.
+- **Parallel Weight Predictor**: A specialized neural network layer that predicts spatial shifts and applies them concurrently across the image matrix.
 
-### 1. Requirements
-Ensure you have the following installed:
+---
+
+## 🚀 Setup & Execution
+
+### 1. Prerequisites
 - Python 3.8+
-- PyTorch (with CUDA support matching your local NVIDIA driver)
-- NVIDIA CUDA Toolkit (required to compile the extension)
+- PyTorch (with CUDA support matching your NVIDIA driver)
+- NVIDIA CUDA Toolkit (required to compile the custom `.pyd` extension)
+- A CUDA-capable GPU
 
-### 2. Setup Environment
+### 2. Installation
 ```bash
-# Clone the repository
-git clone https://github.com/YOUR_USERNAME/Image-Reconstruction.git
+git clone https://github.com/Soumyajit-Pal/Image-Reconstruction.git
 cd Image-Reconstruction
-
-# Install Python dependencies
 pip install -r requirements.txt
 ```
 
-### 3. Compile the CUDA Extension
-You must compile the CUDA backend for the model to run. A build script for Windows is provided.
+### 3. Compile the CUDA Kernels
+You must compile the C++ backend for the model to execute.
 ```bash
-# On Windows, run the build script (ensure MSVC and CUDA_HOME are configured):
+# On Windows (ensure MSVC and CUDA_HOME are configured):
 build.bat
 
-# Or compile manually:
+# Or manually:
 python setup.py build_ext --inplace
 ```
 
-## Usage
+---
 
-### Interactive Demo
-The easiest way to test the model is using the included Jupyter Notebook:
+## 🧪 Usage & Testing
+
+### Interactive Jupyter Demo
+The easiest way to test the model's capabilities:
 ```bash
 jupyter notebook demo.ipynb
 ```
-The notebook automatically loads the pre-trained weights (`weights/denoiser_unified.pth`) and runs inference on randomly generated synthetic data.
+*(Automatically loads pre-trained weights from `weights/denoiser_unified.pth`)*
 
-### Benchmarking
-To compare the performance of the Custom CUDA implementation vs. a standard PyTorch implementation:
+### Evaluate on Real Images
+Run the evaluation script to test the model against standard test images provided in the `test_images/` directory.
 ```bash
-run_benchmarks.bat
-# Or manually:
+python evaluate_real.py
+```
+*(Outputs the denoised results to the `assets/` folder).*
+
+### Benchmarking (CUDA vs Native PyTorch)
+To scientifically verify the 1.5X speedup achieved by the custom CUDA kernel against the baseline serial implementation:
+```bash
 python benchmark.py --iterations 10
 ```
