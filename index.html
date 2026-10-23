@@ -1,0 +1,1028 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Non-Expansive Image Denoiser — CUDA Accelerated Research Showcase</title>
+  <meta name="description" content="Deep learning image reconstruction accelerated with custom C++/CUDA backend kernels, delivering a 1.5X speedup. Developed at IISc Bangalore.">
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --bg-primary: #0a0d14;
+      --bg-secondary: #111622;
+      --bg-card: rgba(18, 24, 38, 0.75);
+      --bg-card-hover: rgba(26, 34, 53, 0.85);
+      --border-subtle: rgba(255, 255, 255, 0.08);
+      --border-accent: rgba(16, 185, 129, 0.3);
+      --accent-emerald: #10b981;
+      --accent-emerald-glow: rgba(16, 185, 129, 0.25);
+      --accent-cyan: #06b6d4;
+      --accent-cyan-glow: rgba(6, 182, 212, 0.25);
+      --accent-amber: #f59e0b;
+      --accent-red: #ef4444;
+      --text-primary: #f9fafb;
+      --text-secondary: #9ca3af;
+      --text-muted: #6b7280;
+      --font-heading: 'Outfit', sans-serif;
+      --font-body: 'Inter', sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
+      font-family: var(--font-body);
+      line-height: 1.6;
+      min-height: 100vh;
+      overflow-x: hidden;
+      background-image: 
+        radial-gradient(circle at 15% 20%, rgba(16, 185, 129, 0.08) 0%, transparent 45%),
+        radial-gradient(circle at 85% 60%, rgba(6, 182, 212, 0.07) 0%, transparent 50%),
+        linear-gradient(to bottom, #0a0d14, #0d121c);
+    }
+
+    /* Top Navigation */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      background: rgba(10, 13, 20, 0.8);
+      border-bottom: 1px solid var(--border-subtle);
+      padding: 0.9rem 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      text-decoration: none;
+      color: var(--text-primary);
+    }
+
+    .brand-icon {
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, var(--accent-emerald), var(--accent-cyan));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.25rem;
+      box-shadow: 0 0 15px var(--accent-emerald-glow);
+    }
+
+    .brand-title {
+      font-family: var(--font-heading);
+      font-weight: 700;
+      font-size: 1.15rem;
+      letter-spacing: -0.02em;
+    }
+
+    .brand-subtitle {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      font-weight: 400;
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .nav-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.35rem 0.8rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      background: rgba(16, 185, 129, 0.12);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      color: var(--accent-emerald);
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1.1rem;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.2s ease;
+      cursor: pointer;
+      border: none;
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-primary);
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.12);
+      border-color: rgba(255, 255, 255, 0.2);
+      transform: translateY(-1px);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #10b981, #059669);
+      color: #fff;
+      box-shadow: 0 4px 14px var(--accent-emerald-glow);
+    }
+
+    .btn-primary:hover {
+      background: linear-gradient(135deg, #059669, #047857);
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+    }
+
+    /* Container */
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 2.5rem 1.5rem;
+    }
+
+    /* Hero Section */
+    .hero {
+      text-align: center;
+      margin-bottom: 3rem;
+    }
+
+    .hero-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.4rem 1rem;
+      border-radius: 9999px;
+      background: rgba(6, 182, 212, 0.1);
+      border: 1px solid rgba(6, 182, 212, 0.25);
+      color: var(--accent-cyan);
+      font-size: 0.82rem;
+      font-weight: 600;
+      margin-bottom: 1.25rem;
+      letter-spacing: 0.02em;
+    }
+
+    .hero h1 {
+      font-family: var(--font-heading);
+      font-size: clamp(2rem, 4vw, 3.25rem);
+      font-weight: 800;
+      line-height: 1.15;
+      letter-spacing: -0.03em;
+      margin-bottom: 1rem;
+      background: linear-gradient(135deg, #ffffff 30%, #9ca3af 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero-highlight {
+      background: linear-gradient(135deg, #10b981, #06b6d4);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero p {
+      max-width: 760px;
+      margin: 0 auto 1.75rem;
+      color: var(--text-secondary);
+      font-size: 1.05rem;
+    }
+
+    .hero-stats {
+      display: flex;
+      justify-content: center;
+      gap: 2rem;
+      flex-wrap: wrap;
+      margin-top: 1.5rem;
+    }
+
+    .hero-stat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      padding: 0.9rem 1.5rem;
+      min-width: 160px;
+      backdrop-filter: blur(10px);
+    }
+
+    .hero-stat-val {
+      font-family: var(--font-heading);
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: var(--accent-emerald);
+    }
+
+    .hero-stat-lbl {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-weight: 600;
+    }
+
+    /* Main Interactive App Area */
+    .app-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 20px;
+      padding: 2rem;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+      backdrop-filter: blur(20px);
+      margin-bottom: 3.5rem;
+      position: relative;
+    }
+
+    .app-card::before {
+      content: '';
+      position: absolute;
+      top: -1px;
+      left: 10%;
+      right: 10%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--accent-emerald), transparent);
+    }
+
+    /* Controls Bar */
+    .controls-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+      padding-bottom: 1.5rem;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .control-group label {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-secondary);
+      margin-bottom: 0.6rem;
+    }
+
+    .pill-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    .pill-btn {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-secondary);
+      padding: 0.45rem 0.9rem;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .pill-btn:hover {
+      background: rgba(255, 255, 255, 0.09);
+      color: var(--text-primary);
+    }
+
+    .pill-btn.active {
+      background: rgba(16, 185, 129, 0.15);
+      border-color: var(--accent-emerald);
+      color: var(--accent-emerald);
+      font-weight: 600;
+      box-shadow: 0 0 12px var(--accent-emerald-glow);
+    }
+
+    /* Comparison Stage */
+    .stage-wrapper {
+      display: grid;
+      grid-template-columns: 1fr 340px;
+      gap: 2rem;
+      align-items: start;
+    }
+
+    @media (max-width: 900px) {
+      .stage-wrapper {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Interactive Image Slider */
+    .slider-container {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      max-width: 540px;
+      margin: 0 auto;
+      border-radius: 14px;
+      overflow: hidden;
+      border: 1px solid var(--border-subtle);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+      user-select: none;
+      background: #000;
+    }
+
+    .slider-img {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      pointer-events: none;
+    }
+
+    .slider-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      pointer-events: none;
+      clip-path: polygon(0 0, 50% 0, 50% 100%, 0 100%);
+      transition: clip-path 0.05s linear;
+    }
+
+    .slider-handle {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 50%;
+      width: 3px;
+      background: #ffffff;
+      cursor: ew-resize;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.7);
+      transform: translateX(-50%);
+      z-index: 10;
+    }
+
+    .slider-button {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: #ffffff;
+      color: #0a0d14;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+      font-size: 1rem;
+      pointer-events: none;
+    }
+
+    .slider-label {
+      position: absolute;
+      bottom: 12px;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      z-index: 5;
+      backdrop-filter: blur(8px);
+      pointer-events: none;
+    }
+
+    .label-left {
+      left: 12px;
+      background: rgba(239, 68, 68, 0.75);
+      color: #fff;
+    }
+
+    .label-right {
+      right: 12px;
+      background: rgba(16, 185, 129, 0.85);
+      color: #fff;
+    }
+
+    /* HUD Metrics Side Panel */
+    .metrics-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+
+    .hud-card {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      padding: 1.25rem;
+    }
+
+    .hud-title {
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-muted);
+      margin-bottom: 0.75rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .metric-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.6rem;
+    }
+
+    .metric-row:last-child {
+      margin-bottom: 0;
+    }
+
+    .metric-name {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+    }
+
+    .metric-val {
+      font-family: var(--font-mono);
+      font-weight: 600;
+      font-size: 0.95rem;
+      color: var(--text-primary);
+    }
+
+    .metric-gain {
+      color: var(--accent-emerald);
+      font-weight: 700;
+      background: rgba(16, 185, 129, 0.12);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 0.8rem;
+    }
+
+    .speedup-badge {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(6, 182, 212, 0.15));
+      border: 1px solid var(--border-accent);
+      padding: 0.8rem 1rem;
+      border-radius: 10px;
+    }
+
+    .speedup-icon {
+      font-size: 1.4rem;
+    }
+
+    .speedup-text h4 {
+      font-family: var(--font-heading);
+      font-size: 0.95rem;
+      color: #fff;
+    }
+
+    .speedup-text p {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+    }
+
+    /* Architecture & Benchmark Section */
+    .section-title {
+      font-family: var(--font-heading);
+      font-size: 1.75rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+      letter-spacing: -0.02em;
+    }
+
+    .section-desc {
+      color: var(--text-secondary);
+      margin-bottom: 2rem;
+      font-size: 0.95rem;
+    }
+
+    .grid-2col {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+      gap: 1.75rem;
+      margin-bottom: 3rem;
+    }
+
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 16px;
+      padding: 1.75rem;
+      backdrop-filter: blur(10px);
+    }
+
+    /* Benchmark Bars */
+    .bench-bar-group {
+      margin-bottom: 1.25rem;
+    }
+
+    .bench-header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.85rem;
+      margin-bottom: 0.4rem;
+    }
+
+    .bench-bar-bg {
+      height: 10px;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 9999px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .bench-bar-fill {
+      height: 100%;
+      border-radius: 9999px;
+      transition: width 1s ease;
+    }
+
+    .bar-cuda {
+      background: linear-gradient(90deg, #10b981, #06b6d4);
+      width: 66%;
+    }
+
+    .bar-pytorch {
+      background: linear-gradient(90deg, #f59e0b, #ef4444);
+      width: 100%;
+    }
+
+    /* Code Snippet Box */
+    .code-box {
+      background: #06090e;
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      overflow: hidden;
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+    }
+
+    .code-box-header {
+      background: rgba(255, 255, 255, 0.03);
+      padding: 0.6rem 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border-subtle);
+      color: var(--text-muted);
+      font-size: 0.75rem;
+    }
+
+    .code-content {
+      padding: 1rem;
+      overflow-x: auto;
+      color: #d1d5db;
+      line-height: 1.55;
+    }
+
+    .kw { color: #f472b6; }
+    .fn { color: #60a5fa; }
+    .type { color: #34d399; }
+    .num { color: #fbbf24; }
+    .comm { color: #6b7280; font-style: italic; }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid var(--border-subtle);
+      padding: 2.5rem 1.5rem;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+    }
+
+    footer a {
+      color: var(--accent-emerald);
+      text-decoration: none;
+    }
+
+    footer a:hover {
+      text-decoration: underline;
+    }
+
+    .author-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-top: 1rem;
+      padding: 0.4rem 1rem;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border-subtle);
+      border-radius: 9999px;
+      font-size: 0.8rem;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Nav -->
+  <nav>
+    <a href="#" class="brand">
+      <div class="brand-icon">⚡</div>
+      <div>
+        <div class="brand-title">CUDA Image Denoiser</div>
+        <div class="brand-subtitle">IISc Bangalore · LISA Lab</div>
+      </div>
+    </a>
+
+    <div class="nav-links">
+      <span class="nav-badge">🔥 1.5X Speedup</span>
+      <a href="https://github.com/Soumyajit-Pal/Image-Reconstruction" target="_blank" class="btn btn-secondary">
+        <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+        GitHub
+      </a>
+      <a href="Denoiser_Report.pdf" target="_blank" class="btn btn-primary">
+        📄 Research Report
+      </a>
+    </div>
+  </nav>
+
+  <div class="container">
+    
+    <!-- Hero Header -->
+    <header class="hero">
+      <div class="hero-tag">
+        <span>🔬 IISc Research Internship Project</span>
+      </div>
+      <h1>
+        Non-Expansive Image Reconstruction<br>
+        <span class="hero-highlight">Powered by Custom CUDA Kernels</span>
+      </h1>
+      <p>
+        An end-to-end deep learning framework that aggregates 225 spatial image shifts in parallel via fused C++/CUDA kernels, achieving <strong>1.5X inference speedup</strong> over standard PyTorch loops with robust numerical convergence.
+      </p>
+
+      <div class="hero-stats">
+        <div class="hero-stat-card">
+          <div class="hero-stat-val">1.50×</div>
+          <div class="hero-stat-lbl">Inference Speedup</div>
+        </div>
+        <div class="hero-stat-card">
+          <div class="hero-stat-val">225</div>
+          <div class="hero-stat-lbl">Parallel Shifts Fused</div>
+        </div>
+        <div class="hero-stat-card">
+          <div class="hero-stat-val">+6.88 dB</div>
+          <div class="hero-stat-lbl">Peak PSNR Gain</div>
+        </div>
+        <div class="hero-stat-card">
+          <div class="hero-stat-val">4.12 ms</div>
+          <div class="hero-stat-lbl">CUDA Kernel Latency</div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Interactive Comparison Stage -->
+    <main class="app-card">
+      
+      <!-- Controls -->
+      <div class="controls-grid">
+        <div class="control-group">
+          <label>1. Select Benchmark Image</label>
+          <div class="pill-group" id="image-pills">
+            <button class="pill-btn active" data-img="clean_aeroplane">✈️ Aeroplane</button>
+            <button class="pill-btn" data-img="clean_building">🏢 Building</button>
+            <button class="pill-btn" data-img="clean_tree">🌳 Tree</button>
+          </div>
+        </div>
+
+        <div class="control-group">
+          <label>2. Noise Level (σ)</label>
+          <div class="pill-group" id="sigma-pills">
+            <button class="pill-btn active" data-sigma="25">σ = 25 (Standard)</button>
+            <button class="pill-btn" data-sigma="40">σ = 40 (Heavy Corruption)</button>
+          </div>
+        </div>
+
+        <div class="control-group">
+          <label>3. Comparison Mode</label>
+          <div class="pill-group" id="mode-pills">
+            <button class="pill-btn active" data-mode="corrupted_vs_denoised">Corrupted vs Denoised</button>
+            <button class="pill-btn" data-mode="denoised_vs_clean">Denoised vs Ground Truth</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stage & HUD -->
+      <div class="stage-wrapper">
+        
+        <!-- Left: Image Slider -->
+        <div class="slider-container" id="sliderContainer">
+          <img src="assets/demo/clean_aeroplane_denoised_s25.png" alt="Denoised Output" class="slider-img" id="imgRight">
+          
+          <div class="slider-overlay" id="sliderOverlay">
+            <img src="assets/demo/clean_aeroplane_noisy_s25.png" alt="Corrupted Input" class="slider-img" id="imgLeft">
+          </div>
+
+          <div class="slider-handle" id="sliderHandle">
+            <div class="slider-button">↔</div>
+          </div>
+
+          <div class="slider-label label-left" id="lblLeft">Corrupted (Noisy)</div>
+          <div class="slider-label label-right" id="lblRight">Reconstructed (Denoised)</div>
+        </div>
+
+        <!-- Right: Execution HUD Metrics -->
+        <div class="metrics-panel">
+          
+          <div class="hud-card">
+            <div class="hud-title">
+              <span>Reconstruction Quality</span>
+              <span class="metric-gain" id="hudPsnrGain">+3.61 dB</span>
+            </div>
+            
+            <div class="metric-row">
+              <span class="metric-name">Noisy PSNR</span>
+              <span class="metric-val" id="hudPsnrNoisy">20.61 dB</span>
+            </div>
+            <div class="metric-row">
+              <span class="metric-name">Denoised PSNR</span>
+              <span class="metric-val" id="hudPsnrDenoised">24.22 dB</span>
+            </div>
+            <div class="metric-row">
+              <span class="metric-name">SSIM Score</span>
+              <span class="metric-val" id="hudSsim">0.7154</span>
+            </div>
+            <div class="metric-row">
+              <span class="metric-name">Resolution</span>
+              <span class="metric-val">256 × 256 RGB</span>
+            </div>
+          </div>
+
+          <div class="hud-card">
+            <div class="hud-title">Kernel Performance</div>
+            <div class="metric-row">
+              <span class="metric-name">CUDA Kernel Latency</span>
+              <span class="metric-val" style="color:var(--accent-emerald);">4.12 ms</span>
+            </div>
+            <div class="metric-row">
+              <span class="metric-name">PyTorch Baseline</span>
+              <span class="metric-val" style="color:var(--accent-amber);">6.18 ms</span>
+            </div>
+            <div class="metric-row">
+              <span class="metric-name">Memory Savings</span>
+              <span class="metric-val">~32% VRAM</span>
+            </div>
+          </div>
+
+          <div class="speedup-badge">
+            <div class="speedup-icon">⚡</div>
+            <div class="speedup-text">
+              <h4>1.5X Execution Speedup</h4>
+              <p>Fused kernel aggregates 225 spatial shifts in a single GPU pass</p>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+    </main>
+
+    <!-- Technical Architecture & Benchmarks -->
+    <section>
+      <h2 class="section-title">Technical Innovation & Architecture</h2>
+      <p class="section-desc">Why the custom CUDA extension dramatically outperforms native PyTorch loops</p>
+
+      <div class="grid-2col">
+        
+        <!-- Card 1: Benchmark Chart -->
+        <div class="card">
+          <h3 style="font-family:var(--font-heading); margin-bottom: 1.25rem;">📊 Inference Latency Benchmark</h3>
+          
+          <div class="bench-bar-group">
+            <div class="bench-header">
+              <span style="font-weight:600; color:var(--accent-emerald);">Custom CUDA Kernel (Fused Aggregation)</span>
+              <span class="metric-val" style="color:var(--accent-emerald);">4.12 ms</span>
+            </div>
+            <div class="bench-bar-bg">
+              <div class="bench-bar-fill bar-cuda"></div>
+            </div>
+          </div>
+
+          <div class="bench-bar-group">
+            <div class="bench-header">
+              <span style="font-weight:600; color:var(--accent-amber);">Serial PyTorch Implementation (Loop Baseline)</span>
+              <span class="metric-val" style="color:var(--accent-amber);">6.18 ms</span>
+            </div>
+            <div class="bench-bar-bg">
+              <div class="bench-bar-fill bar-pytorch"></div>
+            </div>
+          </div>
+
+          <p style="font-size:0.83rem; color:var(--text-secondary); margin-top: 1.25rem;">
+            Native PyTorch requires looping over all 225 spatial shifts individually, launching hundreds of small CUDA kernels with substantial driver launch overhead. Our custom kernel fuses all shifts into a single grid launch.
+          </p>
+        </div>
+
+        <!-- Card 2: CUDA Kernel Snippet -->
+        <div class="card">
+          <h3 style="font-family:var(--font-heading); margin-bottom: 1.25rem;">💻 Fused Kernel Implementation (`aggregation.cu`)</h3>
+          
+          <div class="code-box">
+            <div class="code-box-header">
+              <span>csrc/aggregation.cu</span>
+              <span>CUDA C++</span>
+            </div>
+            <pre class="code-content"><code><span class="kw">template</span> &lt;<span class="kw">typename</span> <span class="type">scalar_t</span>&gt;
+<span class="kw">__global__ void</span> <span class="fn">generate_shifts_kernel</span>(
+    <span class="kw">const</span> <span class="type">scalar_t</span>* __restrict__ input,
+    <span class="type">scalar_t</span>* __restrict__ output,
+    <span class="kw">const int</span>* __restrict__ dy_shifts,
+    <span class="kw">const int</span>* __restrict__ dx_shifts,
+    <span class="type">int</span> num_shifts, <span class="type">int</span> B, <span class="type">int</span> C, <span class="type">int</span> H, <span class="type">int</span> W) {
+
+  <span class="comm">// Fused 1D indexing across (num_shifts * B * C * H * W)</span>
+  <span class="kw">const int</span> idx = blockIdx.x * blockDim.x + threadIdx.x;
+  <span class="kw">if</span> (idx &gt;= total_elements) <span class="kw">return</span>;
+
+  <span class="comm">// Direct cyclic shift calculation without Python overhead</span>
+  <span class="kw">int</span> src_h = (h - dy + H) % H;
+  <span class="kw">int</span> src_w = (w - dx + W) % W;
+  output[idx] = input[b * CHW + c * HW + src_h * W + src_w];
+}</code></pre>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+  </div>
+
+  <!-- Footer -->
+  <footer>
+    <p>
+      Developed by <strong>Soumyajit Pal</strong> during Research Internship at the <strong>Lab of Imaging Sciences and Algorithms (LISA)</strong>, Indian Institute of Science (IISc), Bangalore.
+    </p>
+    <div class="author-badge">
+      <span>🔗 <a href="https://github.com/Soumyajit-Pal/Image-Reconstruction" target="_blank">GitHub Repository</a></span>
+      <span>•</span>
+      <span>📄 <a href="Denoiser_Report.pdf" target="_blank">Research Report</a></span>
+      <span>•</span>
+      <span>🎓 <a href="Intership Certificate.pdf" target="_blank">IISc Internship Certificate</a></span>
+    </div>
+  </footer>
+
+  <!-- Interactive JavaScript Logic -->
+  <script>
+    // Data dictionary for all precomputed metrics
+    const METRICS_DATA = {
+      clean_aeroplane: {
+        25: { psnr_noisy: "20.61 dB", psnr_denoised: "24.22 dB", gain: "+3.61 dB", ssim: "0.7154" },
+        40: { psnr_noisy: "16.81 dB", psnr_denoised: "23.70 dB", gain: "+6.88 dB", ssim: "0.6967" }
+      },
+      clean_building: {
+        25: { psnr_noisy: "20.59 dB", psnr_denoised: "20.02 dB", gain: "-0.57 dB", ssim: "0.4214" },
+        40: { psnr_noisy: "16.80 dB", psnr_denoised: "19.81 dB", gain: "+3.01 dB", ssim: "0.4163" }
+      },
+      clean_tree: {
+        25: { psnr_noisy: "20.63 dB", psnr_denoised: "19.10 dB", gain: "-1.54 dB", ssim: "0.3694" },
+        40: { psnr_noisy: "16.93 dB", psnr_denoised: "18.92 dB", gain: "+2.00 dB", ssim: "0.3651" }
+      }
+    };
+
+    let currentImg = 'clean_aeroplane';
+    let currentSigma = 25;
+    let currentMode = 'corrupted_vs_denoised';
+
+    const imgLeft = document.getElementById('imgLeft');
+    const imgRight = document.getElementById('imgRight');
+    const lblLeft = document.getElementById('lblLeft');
+    const lblRight = document.getElementById('lblRight');
+    const hudPsnrGain = document.getElementById('hudPsnrGain');
+    const hudPsnrNoisy = document.getElementById('hudPsnrNoisy');
+    const hudPsnrDenoised = document.getElementById('hudPsnrDenoised');
+    const hudSsim = document.getElementById('hudSsim');
+
+    function updateStage() {
+      const data = METRICS_DATA[currentImg][currentSigma];
+      hudPsnrNoisy.textContent = data.psnr_noisy;
+      hudPsnrDenoised.textContent = data.psnr_denoised;
+      hudPsnrGain.textContent = data.gain;
+      hudSsim.textContent = data.ssim;
+
+      if (data.gain.startsWith('+')) {
+        hudPsnrGain.style.color = 'var(--accent-emerald)';
+        hudPsnrGain.style.background = 'rgba(16, 185, 129, 0.12)';
+      } else {
+        hudPsnrGain.style.color = 'var(--accent-amber)';
+        hudPsnrGain.style.background = 'rgba(245, 158, 11, 0.12)';
+      }
+
+      if (currentMode === 'corrupted_vs_denoised') {
+        imgLeft.src = `assets/demo/${currentImg}_noisy_s${currentSigma}.png`;
+        imgRight.src = `assets/demo/${currentImg}_denoised_s${currentSigma}.png`;
+        lblLeft.textContent = `Corrupted (σ = ${currentSigma})`;
+        lblRight.textContent = 'Reconstructed (Denoised)';
+      } else {
+        imgLeft.src = `assets/demo/${currentImg}_denoised_s${currentSigma}.png`;
+        imgRight.src = `assets/demo/${currentImg}_clean.png`;
+        lblLeft.textContent = 'Reconstructed';
+        lblRight.textContent = 'Ground Truth Target';
+      }
+    }
+
+    // Event listeners for pills
+    document.querySelectorAll('#image-pills .pill-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('#image-pills .pill-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentImg = btn.dataset.img;
+        updateStage();
+      });
+    });
+
+    document.querySelectorAll('#sigma-pills .pill-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('#sigma-pills .pill-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentSigma = parseInt(btn.dataset.sigma);
+        updateStage();
+      });
+    });
+
+    document.querySelectorAll('#mode-pills .pill-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('#mode-pills .pill-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentMode = btn.dataset.mode;
+        updateStage();
+      });
+    });
+
+    // Slider Drag Logic
+    const container = document.getElementById('sliderContainer');
+    const overlay = document.getElementById('sliderOverlay');
+    const handle = document.getElementById('sliderHandle');
+    let isDragging = false;
+
+    function setSliderPosition(x) {
+      const rect = container.getBoundingClientRect();
+      let pos = (x - rect.left) / rect.width;
+      pos = Math.max(0, Math.min(1, pos));
+      const percentage = pos * 100;
+      overlay.style.clipPath = `polygon(0 0, ${percentage}% 0, ${percentage}% 100%, 0 100%)`;
+      handle.style.left = `${percentage}%`;
+    }
+
+    container.addEventListener('mousedown', (e) => {
+      isDragging = true;
+      setSliderPosition(e.clientX);
+    });
+
+    window.addEventListener('mouseup', () => {
+      isDragging = false;
+    });
+
+    window.addEventListener('mousemove', (e) => {
+      if (!isDragging) return;
+      setSliderPosition(e.clientX);
+    });
+
+    // Mobile touch events
+    container.addEventListener('touchstart', (e) => {
+      isDragging = true;
+      setSliderPosition(e.touches[0].clientX);
+    });
+
+    window.addEventListener('touchend', () => {
+      isDragging = false;
+    });
+
+    window.addEventListener('touchmove', (e) => {
+      if (!isDragging) return;
+      setSliderPosition(e.touches[0].clientX);
+    });
+
+    // Initial render
+    updateStage();
+  </script>
+</body>
+</html>

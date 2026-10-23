@@ -1,3 +1,13 @@
+---
+title: Image Reconstruction CUDA
+emoji: 🖼️
+colorFrom: green
+colorTo: blue
+sdk: static
+pinned: false
+license: mit
+---
+
 # 🖼️ Image Reconstruction (CUDA Accelerated)
 
 ![PyTorch](https://img.shields.io/badge/PyTorch-2.0+-red.svg)
@@ -55,6 +65,13 @@ python setup.py build_ext --inplace
 ---
 
 ## 🧪 Usage & Testing
+
+### Interactive Web Demo (Gradio)
+Launch the interactive web UI locally with auto CUDA/CPU backend detection:
+```bash
+python app.py
+```
+Visit `http://localhost:7860` to upload custom images, tweak noise levels, and inspect PSNR/SSIM improvements in real time.
 
 ### Interactive Jupyter Demo
 The easiest way to test the model's capabilities:

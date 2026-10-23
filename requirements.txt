@@ -4,3 +4,5 @@ matplotlib
 jupyter
 scikit-image
 numpy
+gradio
+Pillow
