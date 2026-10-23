@@ -1,19 +1,12 @@
----
-title: Image Reconstruction CUDA
-emoji: 🖼️
-colorFrom: green
-colorTo: blue
-sdk: static
-pinned: false
-license: mit
----
-
 # 🖼️ Image Reconstruction (CUDA Accelerated)
 
-![PyTorch](https://img.shields.io/badge/PyTorch-2.0+-red.svg)
-![CUDA](https://img.shields.io/badge/CUDA-11.8+-green.svg)
-![C++](https://img.shields.io/badge/C++-17-blue.svg)
-![Status](https://img.shields.io/badge/Status-Complete-success.svg)
+[![Hugging Face Spaces](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Live%20Demo-blue?style=for-the-badge)](https://huggingface.co/spaces/soumyajitpal04/image-denoiser-cuda)
+[![PyTorch](https://img.shields.io/badge/PyTorch-2.0+-red.svg)](https://pytorch.org/)
+[![CUDA](https://img.shields.io/badge/CUDA-11.8+-green.svg)](https://developer.nvidia.com/cuda-toolkit)
+[![C++](https://img.shields.io/badge/C++-17-blue.svg)](https://en.cppreference.com/)
+[![Status](https://img.shields.io/badge/Status-Complete-success.svg)](#)
+
+> 🚀 **Interactive Web Showcase:** **[Try the Live Demo on Hugging Face Spaces](https://huggingface.co/spaces/soumyajitpal04/image-denoiser-cuda)** — Drag the interactive split-screen slider to test real-time non-expansive image reconstruction!
 
 This project showcases a high-performance **Non-Expansive Image Denoiser**. Developed as part of my **IISc Research Internship** at the Lab of Imaging Sciences and Algorithms (LISA), this model predicts parallel spatial shifts to reconstruct heavily corrupted images. 
 
